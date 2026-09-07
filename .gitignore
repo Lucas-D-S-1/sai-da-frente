@@ -1,0 +1,9 @@
+.ai-memory.toml
+.claude/
+.codex/
+.agents/
+.mcp.json
+node_modules/
+public/
+work/
+.tmp-*/

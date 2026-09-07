@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#101823" />
+    <meta
+      name="description"
+      content="Sai da Frente! — um quebra-cabeça de trânsito com 72 fases. Mova os veículos e libere o carro vermelho."
+    />
+    <title>Sai da Frente! — quebra-cabeça de trânsito</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="js/engine.js" defer></script>
+    <script src="js/levels.js" defer></script>
+    <script src="js/competition.js" defer></script>
+    <script src="js/app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Sai da Frente! — voltar para a fase atual">
+          <span class="brand-mark" aria-hidden="true">
+            <span class="brand-mark-light"></span>
+            <span class="brand-mark-car"></span>
+          </span>
+          <span class="brand-copy">
+            <span class="brand-eyebrow">QUEBRA-CABEÇA DE TRÂNSITO</span>
+            <span class="brand-name">Sai da Frente!</span>
+          </span>
+        </a>
+
+        <div class="top-actions">
+          <button class="top-action" id="soundButton" type="button" aria-pressed="false">
+            <span class="top-action-icon" id="soundIcon" aria-hidden="true">⌁</span>
+            <span id="soundLabel">Som desligado</span>
+          </button>
+          <button class="top-action" id="helpButton" type="button">
+            <span class="top-action-icon" aria-hidden="true">?</span>
+            <span>Como jogar</span>
+          </button>
+          <button class="top-action top-action-accent" id="levelMenuButton" type="button">
+            <span class="top-action-icon" aria-hidden="true">▦</span>
+            <span>Fases</span>
+          </button>
+        </div>
+      </header>
+
+      <nav class="mode-bar" aria-label="Modo de jogo">
+        <div class="mode-buttons"><button id="campaignMode" aria-pressed="true">Campanha <span>72 fases</span></button><button id="dailyMode" aria-pressed="false">Racha do dia <span>vs. amigos ↗</span></button></div>
+        <span id="careerBadge" class="career-badge">Aprendiz · 0 / 216 ★</span>
+      </nav>
+      <section id="racePanel" class="race-panel" aria-label="Racha entre amigos" hidden>
+        <div class="race-heading"><span class="level-kicker" id="raceLabel">RACHA DO DIA</span><span id="raceDate"></span><span id="streakBadge" class="streak-badge"></span></div>
+        <div id="raceLobby" class="race-lobby">
+          <div class="race-pitch">
+            <h1>O mesmo trânsito.<br><em>Quem sai melhor?</em></h1>
+            <p>Três etapas. Uma marca para bater. Abra o caminho, feche seu tempo e desafie o grupo.</p>
+            <ol class="race-rules"><li><strong>Menos movimentos vence.</strong> Tempo desempata.</li><li>Sem dicas ou desfazer. Cada deslizada conta.</li><li>Pode tentar de novo. Seu melhor resultado fica salvo.</li></ol>
+            <div class="race-start"><label for="nickname">Seu apelido<input id="nickname" maxlength="20" autocomplete="nickname" placeholder="Como te chamam?" /></label><button id="startRaceButton" class="primary-button">Começar racha →</button></div>
+            <p class="race-fineprint">O relógio começa ao abrir cada etapa e pausa entre elas. Sair ou recarregar encerra a tentativa. Novo desafio às 00h UTC (21h de Brasília).</p>
+          </div>
+          <aside class="challenge-card"><span class="modal-kicker">A DISPUTA</span><h2>Tem alguém na sua cola?</h2><div id="comparison"></div><div class="challenge-actions"><button id="inviteButton" class="secondary-button">Convidar um amigo ↗</button><button id="shareBestButton" class="primary-button" hidden>Compartilhar minha marca ↗</button></div><p class="race-fineprint">Resultados via link, sem placar online. As jogadas são conferidas; o tempo é informado pelo navegador. Vale a parceria: sem espiar a solução!</p></aside>
+        </div>
+        <div id="raceLive" class="race-live" hidden><strong id="raceStep">Etapa 1 de 3</strong><span id="raceTotal">0 mov.</span><span id="raceClock" aria-label="Tempo total">0:00</span><button id="continueRaceButton" class="primary-button" hidden>Próxima etapa →</button></div>
+        <div id="shareBox" class="share-box" hidden><label for="shareLink" id="shareStatus">Copie este link e mande para seus amigos.</label><div><input id="shareLink" readonly aria-label="Link do desafio"/><button id="copyShareButton" class="secondary-button">Copiar link</button></div></div>
+      </section>
+      <main class="game-layout" id="gameMain">
+        <section class="board-column" aria-labelledby="levelTitle">
+          <div class="level-heading">
+            <div>
+              <div class="level-kicker" id="tierName">APRENDIZ</div>
+              <h1 id="levelTitle">Fase 1</h1>
+              <p id="levelDescription">Libere o carro vermelho.</p>
+            </div>
+            <div class="level-number-badge" aria-label="Número da fase">
+              <span id="levelNumber">01</span>
+            </div>
+          </div>
+
+          <div class="board-stage">
+            <div class="board-viewport">
+              <div class="exit-bridge" aria-hidden="true">
+                <span>SAÍDA</span>
+              </div>
+              <div
+                id="board"
+                class="board"
+                tabindex="0"
+                aria-label="Tabuleiro. Use o mouse, toque ou setas do teclado para mover os veículos."
+              ></div>
+            </div>
+            <div class="board-floor-shadow" aria-hidden="true"></div>
+          </div>
+
+          <div class="board-instruction">
+            <span class="instruction-dot" aria-hidden="true"></span>
+            <span>Arraste um veículo no próprio eixo. O vermelho precisa chegar à saída.</span>
+          </div>
+        </section>
+
+        <aside class="control-panel" aria-label="Controles da fase">
+          <section class="progress-card">
+            <div class="card-label-row">
+              <span class="card-label">PROGRESSO</span>
+              <span class="progress-count" id="progressCount">1 / 72</span>
+            </div>
+            <div class="progress-title-row">
+              <strong id="progressTier">Aprendiz</strong>
+              <span class="tier-chip" id="tierChip">NÍVEL 1</span>
+            </div>
+            <div class="progress-track" aria-hidden="true">
+              <span id="progressBar"></span>
+            </div>
+            <p class="progress-caption" id="progressCaption">Você está começando. Boa viagem.</p>
+          </section>
+
+          <section class="stats-card" aria-label="Estatísticas da fase">
+            <div class="stat-block stat-main">
+              <span class="stat-label">MOVIMENTOS</span>
+              <strong id="moveCount">0</strong>
+            </div>
+            <div class="stat-divider" aria-hidden="true"></div>
+            <div class="stat-block">
+              <span class="stat-label">MELHOR POSSÍVEL</span>
+              <strong id="optimalCount">2</strong>
+            </div>
+            <div class="stat-block stat-best">
+              <span class="stat-label">SEU MELHOR</span>
+              <strong id="bestCount">—</strong>
+            </div>
+          </section>
+
+          <section class="tip-card" id="tipCard" aria-live="polite">
+            <span class="tip-icon" aria-hidden="true">✦</span>
+            <div>
+              <strong id="tipTitle">Uma pista rápida</strong>
+              <p id="tipText">Cada movimento pode deslizar um veículo por várias casas.</p>
+            </div>
+          </section>
+
+          <div class="controls-grid">
+            <button class="game-control" id="undoButton" type="button" disabled>
+              <span class="control-icon" aria-hidden="true">↶</span>
+              <span>Desfazer</span>
+              <kbd>Ctrl Z</kbd>
+            </button>
+            <button class="game-control" id="redoButton" type="button" disabled>
+              <span class="control-icon" aria-hidden="true">↷</span>
+              <span>Refazer</span>
+              <kbd>Ctrl Y</kbd>
+            </button>
+            <button class="game-control" id="restartButton" type="button">
+              <span class="control-icon" aria-hidden="true">↻</span>
+              <span>Reiniciar</span>
+            </button>
+            <button class="game-control game-control-hint" id="hintButton" type="button">
+              <span class="control-icon" aria-hidden="true">✦</span>
+              <span>Dar uma dica</span>
+            </button>
+          </div>
+
+          <div class="keyboard-note">
+            <span class="keyboard-icon" aria-hidden="true">⌨</span>
+            <span>Prefere teclado? Tab escolhe o veículo; setas movem; Shift + seta vai até o limite.</span>
+          </div>
+        </aside>
+      </main>
+
+      <footer class="app-footer">
+        <span>Treine na campanha. Dispute no racha. Volte para bater sua marca.</span>
+        <span class="footer-status"><span class="status-light"></span> progresso salvo neste navegador</span>
+      </footer>
+    </div>
+
+    <div class="live-region" id="liveRegion" aria-live="polite" aria-atomic="true"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <div class="modal-backdrop" id="levelModal" hidden>
+      <section class="modal level-modal" role="dialog" aria-modal="true" aria-labelledby="levelModalTitle">
+        <div class="modal-header">
+          <div>
+            <span class="modal-kicker">ESCOLHA SEU CAMINHO</span>
+            <h2 id="levelModalTitle">Todas as fases</h2>
+          </div>
+          <button class="modal-close" id="closeLevelModal" type="button" aria-label="Fechar seleção de fases">×</button>
+        </div>
+        <p class="modal-intro">As fases ficam mais cheias e mais espertas conforme você avança.</p>
+        <div class="levels-list" id="levelsList"></div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="helpModal" hidden>
+      <section class="modal help-modal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
+        <div class="modal-header">
+          <div>
+            <span class="modal-kicker">REGRAS DA ESTRADA</span>
+            <h2 id="helpModalTitle">Como jogar</h2>
+          </div>
+          <button class="modal-close" id="closeHelpModal" type="button" aria-label="Fechar instruções">×</button>
+        </div>
+        <div class="rules-list">
+          <div class="rule-row">
+            <span class="rule-number">01</span>
+            <div><strong>Mova no próprio eixo</strong><p>Veículos horizontais deslizam para os lados; verticais, para cima e para baixo. O tamanho não muda essa regra.</p></div>
+          </div>
+          <div class="rule-row">
+            <span class="rule-number">02</span>
+            <div><strong>Nada de atravessar veículos</strong><p>Deslize cada peça até onde houver espaço livre. Um movimento pode cobrir várias casas.</p></div>
+          </div>
+          <div class="rule-row">
+            <span class="rule-number">03</span>
+            <div><strong>Abra o caminho</strong><p>Leve o carro vermelho até a abertura na direita. Menos movimentos valem mais estrelas. Ouro exige a solução mínima sem dicas. Use Tab para escolher um veículo e Shift + seta para deslizar até o limite.</p></div>
+          </div>
+        </div>
+        <div class="help-legend">
+          <span class="legend-hero"></span><span>Seu carro</span>
+          <span class="legend-blocker"></span><span>Veículo bloqueador</span>
+          <span class="legend-exit"></span><span>Saída</span>
+        </div>
+        <button class="primary-button modal-action" id="closeHelpAction" type="button">Entendi</button>
+      </section>
+    </div>
+
+    <div class="modal-backdrop win-backdrop" id="winModal" hidden>
+      <section class="modal win-modal" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+        <div class="win-burst" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span><span>·</span></div>
+        <span class="modal-kicker">CAMINHO LIVRE</span>
+        <h2 id="winTitle">Boa! Você saiu do congestionamento.</h2>
+        <p class="win-score" id="winScore">Resolvido em 2 movimentos.</p>
+        <div class="stars" id="winStars" aria-label="3 estrelas">★★★</div>
+        <p class="win-note" id="winNote">Você alcançou o melhor conhecido para esta fase.</p>
+        <div class="win-actions">
+          <button class="primary-button" id="shareResultButton" type="button" hidden>Desafiar meus amigos ↗</button>
+          <button class="secondary-button" id="winReplayButton" type="button">Jogar de novo</button>
+          <button class="primary-button" id="nextLevelButton" type="button">Próxima fase <span aria-hidden="true">→</span></button>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>
