@@ -3,6 +3,7 @@
 
   const Engine = window.RushEngine;
   const Competition = window.RushCompetition;
+  const Room = window.RushRoom;
   const $ = (id) => document.getElementById(id);
   const LEVELS = Array.isArray(window.RUSH_LEVELS) ? window.RUSH_LEVELS : [];
   const TIERS = Array.isArray(window.RUSH_TIERS) ? window.RUSH_TIERS : [];
@@ -342,6 +343,7 @@
       showToast(`${pieceName(pieceIndex, piece)}: ${directionName(piece, next > from ? 1 : -1)}.`);
     }
     if (isSolved()) handleWin();
+    saveRoomCheckpoint();
     return true;
   }
 
@@ -499,6 +501,7 @@
   }
 
   function restart(showMessage) {
+    if (Room.active) { closeModal(dom.winModal); return; }
     if (race.active) { enterRace(race.date); return; }
     if (state.busy) return;
     clearTimeout(state.winTimer);
@@ -575,7 +578,7 @@
     dom.bestCount.textContent = best ? String(best) : '—';
     dom.undoButton.disabled = race.active || state.won || state.history.length === 0 || state.busy;
     dom.redoButton.disabled = race.active || state.won || state.redo.length === 0 || state.busy;
-    dom.restartButton.disabled = state.busy;
+    dom.restartButton.disabled = state.busy || Room.active;
     dom.hintButton.disabled = race.active || state.busy || state.won;
     dom.soundButton.setAttribute('aria-pressed', String(state.sound));
     dom.soundIcon.textContent = state.sound ? '♪' : '⌁';
@@ -861,7 +864,7 @@
     $('dailyMode').addEventListener('click', () => enterRace(Competition.today()));
     $('startRaceButton').addEventListener('click', startRace);
     $('continueRaceButton').addEventListener('click', advanceRace);
-    $('inviteButton').addEventListener('click', () => shareRace(false));
+
     $('shareResultButton').addEventListener('click', () => shareRace(true));
     $('shareBestButton').addEventListener('click', () => shareRace(true));
     $('nickname').value = raceStore.name;
@@ -873,7 +876,7 @@
     $('copyShareButton').addEventListener('click', copyShareLink);
     window.addEventListener('hashchange', readChallenge);
     setInterval(() => {
-      if (race.active && race.status === 'playing') $('raceClock').textContent = Competition.formatTime(race.elapsed + performance.now() - race.started);
+      if (race.active && ['playing','between'].includes(race.status)) $('raceClock').textContent = Competition.formatTime(Room.active ? Room.elapsed() : race.elapsed + (race.status === 'playing' ? performance.now() - race.started : 0));
     }, 250);
   }
 
@@ -902,6 +905,7 @@
     catch (_) { showToast('Não foi possível salvar neste navegador. Compartilhe o link para guardar seu resultado.'); }
   }
   function enterCampaign() {
+    if (Room.active) { showToast('Use Sair da sala para voltar à campanha.'); return; }
     race.active = false;
     race.status = 'ready';
     history.replaceState(null, '', location.pathname + location.search);
@@ -909,6 +913,7 @@
     loadLevel(state.progress.current);
   }
   function enterRace(date) {
+    if (Room.active && race.active) return;
     clearTimeout(state.winTimer);
     state.generation++;
     state.busy = false;
@@ -924,12 +929,13 @@
     if (race.imported?.d !== date) race.imported = null;
     const params = new URLSearchParams({ v: '1', racha: date });
     if (race.imported) params.set('r', Competition.encode(race.imported));
-    history.replaceState(null, '', location.pathname + location.search + '#' + params.toString());
+    if (!Room.active) history.replaceState(null, '', location.pathname + location.search + '#' + params.toString());
     [dom.winModal, dom.levelModal, dom.helpModal].forEach(closeModal);
     $('shareBox').hidden = true;
     updateRaceUI();
   }
   function startRace() {
+    if (Room.active) return;
     if (!race.active || !['ready', 'finished'].includes(race.status)) return;
     raceStore.name = Competition.nickname($('nickname').value);
     $('nickname').value = raceStore.name;
@@ -943,14 +949,16 @@
     loadLevel(Competition.stages(race.date)[race.stage]);
     state.elements[0]?.focus({ preventScroll: true });
     if (window.innerWidth <= 780) document.querySelector('.level-heading').scrollIntoView({ block: 'start' });
+    saveRoomCheckpoint();
   }
   function advanceRace() {
     closeModal(dom.winModal);
     if (race.status === 'between') { race.stage++; startRaceStage(); }
-    else if (race.status === 'finished') { enterRace(race.date); startRace(); }
+    else if (race.status === 'finished' && !Room.active) { enterRace(race.date); startRace(); }
   }
   function finishRaceStage() {
-    race.elapsed += Math.max(0, performance.now() - race.started);
+    if (Room.active) race.elapsed = Room.elapsed();
+    else race.elapsed += Math.max(0, performance.now() - race.started);
     race.totalMoves += state.moves;
     race.traces.push(state.history.map(move => move.piece.toString(36) + move.to.toString(36)).join(''));
     const finished = race.stage === 2;
@@ -959,8 +967,11 @@
       race.result = Competition.verify({ v: 1, d: race.date, n: raceStore.name,
         m: race.totalMoves, t: Math.round(race.elapsed / 1000) * 1000, p: race.traces }, LEVELS, Engine);
       const best = raceStore.records[race.date];
-      if (!best || Competition.compare(race.result, best) < 0) raceStore.records[race.date] = race.result;
-      saveRaceStore();
+      if (Room.active) Room.finish(race.result);
+      else {
+        if (!best || Competition.compare(race.result, best) < 0) raceStore.records[race.date] = race.result;
+        saveRaceStore();
+      }
     }
     updateHud();
     const optimal = Competition.stages(race.date).reduce((sum, index) => sum + LEVELS[index].m, 0);
@@ -972,7 +983,14 @@
     dom.winNote.textContent = finished ? Competition.medal(race.totalMoves, optimal) + '. Envie o resultado para um amigo bater sua marca.' : 'O relógio está pausado. A próxima etapa começa quando você estiver pronto.';
     dom.nextLevelButton.textContent = finished ? 'Tentar de novo' : 'Próxima etapa →';
     dom.winReplayButton.textContent = 'Voltar ao racha';
-    $('shareResultButton').hidden = !finished;
+    $('shareResultButton').hidden = !finished || Room.active;
+    if (Room.active) {
+      $('winTitle').textContent = finished ? 'Você terminou o racha!' : `Etapa ${race.stage + 1} concluída!`;
+      dom.winNote.textContent = finished ? 'Seu resultado será confirmado no placar da sala. Aguarde seus amigos terminarem.' : 'O tempo da sala continua correndo. Avance para a próxima etapa!';
+      dom.nextLevelButton.textContent = finished ? 'Ver placar da sala' : 'Próxima etapa →';
+      dom.winReplayButton.textContent = 'Ver sala';
+    }
+    saveRoomCheckpoint();
     state.elements[0]?.classList.add('is-escaping');
     playTone('win');
     announce(dom.winScore.textContent);
@@ -989,12 +1007,12 @@
     $('careerBadge').textContent = `${title} · ${stars} / 216 ★`;
     if (!race.active) return;
     const inRound = ['playing', 'between'].includes(race.status);
-    $('raceLobby').hidden = inRound;
+    $('raceLobby').hidden = inRound || Room.active;
     $('raceLive').hidden = !inRound;
     $('continueRaceButton').hidden = race.status !== 'between';
     $('raceDate').textContent = race.date.split('-').reverse().join('/');
     $('raceLabel').textContent = race.date === Competition.today() ? 'RACHA DO DIA' : 'RACHA POR CONVITE';
-    $('raceClock').textContent = Competition.formatTime(race.elapsed + (race.status === 'playing' ? performance.now() - race.started : 0));
+    $('raceClock').textContent = Competition.formatTime(Room.active ? Room.elapsed() : race.elapsed + (race.status === 'playing' ? performance.now() - race.started : 0));
     $('raceTotal').textContent = `${race.totalMoves + (race.status === 'playing' ? state.moves : 0)} mov.`;
     $('raceStep').textContent = `Etapa ${race.stage + 1} de 3`;
     $('streakBadge').textContent = `${Competition.streak(Object.keys(raceStore.records), Competition.today())} dia(s) de sequência`;
@@ -1009,7 +1027,7 @@
       dom.progressBar.style.width = `${(race.stage + (state.won ? 1 : 0)) / 3 * 100}%`;
       dom.progressCaption.textContent = '3 etapas · menos movimentos vence · tempo desempata';
       dom.bestCount.textContent = '—';
-      setTip('Vale cada movimento', 'Sem dicas e sem desfazer. Reiniciar começa outra tentativa inteira.');
+      setTip('Vale cada movimento', Room.active ? 'Sem dicas, desfazer ou reiniciar. O tempo corre até terminar as três etapas.' : 'Sem dicas e sem desfazer. Reiniciar começa outra tentativa inteira.');
     }
     renderComparison();
   }
@@ -1045,6 +1063,17 @@
       const hash = location.hash.slice(1);
       if (hash.length > 4200) throw new Error();
       const params = new URLSearchParams(hash);
+      if (params.has('sala')) {
+        const inviteHash = location.hash;
+        enterRace(Competition.today());
+        if (!Room.active) {
+          history.replaceState(null, '', location.pathname + location.search + inviteHash);
+          $('roomCodeInput').value = params.get('sala');
+          $('roomJoinError').textContent = 'Escolha seu apelido e clique em Entrar na sala.';
+        }
+        return;
+      }
+      if (Room.active) return;
       const date = params.get('racha');
       if (!Competition.validDate(date) || date > Competition.today() || params.get('v') !== '1') throw new Error();
       const token = params.get('r');
@@ -1082,6 +1111,51 @@
     }
   }
 
+
+  function saveRoomCheckpoint() {
+    if (!Room.active || !Room.state || !['playing','between','finished'].includes(race.status)) return;
+    Room.save({ startsAt: Room.state.room.startsAt, day: race.date, stage: race.stage,
+      status: race.status, traces: race.traces,
+      trace: state.history.map(m => m.piece.toString(36) + m.to.toString(36)).join('') });
+  }
+  function startRoomRace(snapshot, checkpoint) {
+    race.active = true; race.date = snapshot.room.day; race.stage = 0;
+    race.totalMoves = 0; race.elapsed = 0; race.traces = []; race.result = null;
+    raceStore.name = snapshot.players.find(p => p.id === snapshot.selfId)?.name || raceStore.name;
+    const replay = (index, trace) => {
+      if (typeof trace !== 'string' || trace.length > Competition.MAX_MOVES * 2 || trace.length % 2 || !/^[0-9a-z]*$/.test(trace)) throw new Error();
+      const pieces = Engine.parseBoard(LEVELS[index].b), history = [];
+      for (let i = 0; i < trace.length; i += 2) {
+        const piece = parseInt(trace[i],36), to = parseInt(trace[i+1],36), world = Engine.createWorld(pieces);
+        if (world.solved(world.start)) throw new Error();
+        const buf = new Int32Array(pieces.length * 12), n = world.moves(world.start,buf);
+        let legal = false; for(let j=0;j<n;j+=2) if(buf[j]===piece && buf[j+1]===to) legal=true;
+        if(!legal) throw new Error();
+        history.push({piece,from:pieces[piece].pos,to}); pieces[piece].pos=to;
+      }
+      const w = Engine.createWorld(pieces);
+      return { pieces, history, solved:w.solved(w.start) };
+    };
+    try {
+      if (!checkpoint) { startRaceStage(); return; }
+      const cp=checkpoint, indices=Competition.stages(race.date);
+      if(cp.startsAt!==snapshot.room.startsAt || cp.day!==race.date || !Number.isInteger(cp.stage) || cp.stage<0 || cp.stage>2 || !['playing','between'].includes(cp.status)) throw new Error();
+      if(!Array.isArray(cp.traces) || cp.traces.length!==cp.stage+(cp.status==='between'?1:0)) throw new Error();
+      cp.traces.forEach((trace,i)=>{if(!replay(indices[i],trace).solved)throw new Error();});
+      const current=replay(indices[cp.stage],cp.trace);
+      if(current.solved!==(cp.status==='between'))throw new Error();
+      race.stage=cp.stage;race.status=cp.status;race.started=performance.now();race.traces=cp.traces;
+      race.totalMoves=cp.traces.reduce((n,t)=>n+t.length/2,0);
+      loadLevel(indices[cp.stage]);
+      state.pieces=current.pieces;state.history=current.history;state.moves=current.history.length;state.won=current.solved;
+      renderPieces(false);updateHud();
+      showToast('Você voltou à partida. O relógio continuou correndo.');
+    } catch (_) {
+      race.stage=0;race.totalMoves=0;race.traces=[];startRaceStage();
+      showToast('Não foi possível recuperar as jogadas. A tentativa voltou ao início com o tempo original.');
+    }
+  }
+
   function start() {
     if (!Engine || !LEVELS.length) {
       setTip('Não foi possível abrir', 'Os dados das fases não foram carregados.');
@@ -1090,6 +1164,11 @@
     bindEvents();
     loadLevel(state.progress.current || 0);
     readChallenge();
+    Room.attach({ start: startRoomRace, stage: () => race.stage, change: () => {
+      if (Room.active && !race.active) enterRace(Room.state?.room.day || Competition.today());
+      if (Room.state) race.date = Room.state.room.day;
+      updateRaceUI();
+    }, leave: () => { race.active = false; enterRace(Competition.today()); } });
   }
 
   start();

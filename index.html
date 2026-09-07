@@ -13,6 +13,7 @@
     <script src="js/engine.js" defer></script>
     <script src="js/levels.js" defer></script>
     <script src="js/competition.js" defer></script>
+    <script src="js/room-client.js" defer></script>
     <script src="js/app.js" defer></script>
   </head>
   <body>
@@ -51,15 +52,24 @@
       </nav>
       <section id="racePanel" class="race-panel" aria-label="Racha entre amigos" hidden>
         <div class="race-heading"><span class="level-kicker" id="raceLabel">RACHA DO DIA</span><span id="raceDate"></span><span id="streakBadge" class="streak-badge"></span></div>
+        <section id="roomPanel" class="room-panel" aria-label="Sala com amigos" hidden>
+          <div class="room-heading"><div><span class="modal-kicker">SALA COM AMIGOS</span><h2 id="roomStatus">Esperando a turma</h2></div><div class="room-code-wrap"><span>Código da sala</span><strong id="roomCode"></strong></div></div>
+          <p id="roomHelp"></p>
+          <ul id="roomPlayers" aria-label="Jogadores na sala"></ul>
+          <p id="roomCountdown" class="room-countdown" aria-live="polite" hidden></p>
+          <div class="room-actions"><button id="roomCopyButton" class="secondary-button">Copiar convite ↗</button><button id="roomReadyButton" class="secondary-button" aria-pressed="false">Estou pronto</button><button id="roomStartButton" class="primary-button" hidden>Dar a largada →</button><button id="roomExitButton" class="secondary-button">Sair da sala</button></div>
+          <p id="roomMessage" role="status" aria-live="polite"></p>
+          <div id="roomLinkBox" hidden><label for="roomInviteLink">Convite da sala</label><input id="roomInviteLink" readonly /></div>
+        </section>
         <div id="raceLobby" class="race-lobby">
           <div class="race-pitch">
-            <h1>O mesmo trânsito.<br><em>Quem sai melhor?</em></h1>
-            <p>Três etapas. Uma marca para bater. Abra o caminho, feche seu tempo e desafie o grupo.</p>
+            <h1>Chame a turma.<br><em>Deem a largada juntos.</em></h1>
+            <p>Crie uma sala ou entre pelo código. Prefere treinar? O racha solo continua disponível abaixo.</p>
             <ol class="race-rules"><li><strong>Menos movimentos vence.</strong> Tempo desempata.</li><li>Sem dicas ou desfazer. Cada deslizada conta.</li><li>Pode tentar de novo. Seu melhor resultado fica salvo.</li></ol>
             <div class="race-start"><label for="nickname">Seu apelido<input id="nickname" maxlength="20" autocomplete="nickname" placeholder="Como te chamam?" /></label><button id="startRaceButton" class="primary-button">Começar racha →</button></div>
             <p class="race-fineprint">O relógio começa ao abrir cada etapa e pausa entre elas. Sair ou recarregar encerra a tentativa. Novo desafio às 00h UTC (21h de Brasília).</p>
           </div>
-          <aside class="challenge-card"><span class="modal-kicker">A DISPUTA</span><h2>Tem alguém na sua cola?</h2><div id="comparison"></div><div class="challenge-actions"><button id="inviteButton" class="secondary-button">Convidar um amigo ↗</button><button id="shareBestButton" class="primary-button" hidden>Compartilhar minha marca ↗</button></div><p class="race-fineprint">Resultados via link, sem placar online. As jogadas são conferidas; o tempo é informado pelo navegador. Vale a parceria: sem espiar a solução!</p></aside>
+          <aside class="challenge-card"><span class="modal-kicker">A DISPUTA</span><h2>Reúna seus amigos</h2><div id="comparison"></div><div class="room-join"><label for="roomCodeInput">Tem um código de sala?</label><input id="roomCodeInput" maxlength="8" placeholder="Ex.: ABCD2345" autocapitalize="characters" autocomplete="off" /><button id="joinRoomButton" class="secondary-button">Entrar na sala</button><p id="roomJoinError" role="status"></p></div><div class="challenge-actions"><button id="inviteButton" class="secondary-button">Criar sala com amigos ↗</button><button id="shareBestButton" class="primary-button" hidden>Compartilhar minha marca ↗</button></div><p class="race-fineprint">Na sala, vocês aparecem juntos, confirmam presença e largam ao mesmo tempo. O placar atualiza ao concluir. Para jogar em outro horário, compartilhe sua marca pelo link.</p></aside>
         </div>
         <div id="raceLive" class="race-live" hidden><strong id="raceStep">Etapa 1 de 3</strong><span id="raceTotal">0 mov.</span><span id="raceClock" aria-label="Tempo total">0:00</span><button id="continueRaceButton" class="primary-button" hidden>Próxima etapa →</button></div>
         <div id="shareBox" class="share-box" hidden><label for="shareLink" id="shareStatus">Copie este link e mande para seus amigos.</label><div><input id="shareLink" readonly aria-label="Link do desafio"/><button id="copyShareButton" class="secondary-button">Copiar link</button></div></div>
