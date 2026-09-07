@@ -318,6 +318,10 @@
   }
 
   function commitMove(pieceIndex, target, source) {
+    if (Room.active && Room.paused) {
+      showToast('A partida está pausada pelo anfitrião.');
+      return false;
+    }
     if (state.won || state.busy || (race.active && race.status !== 'playing')) return false;
     if (race.active && state.moves >= Competition.MAX_MOVES) { showToast('Limite de 300 movimentos nesta etapa. Comece outra tentativa.'); return false; }
     const piece = state.pieces[pieceIndex];
@@ -355,6 +359,11 @@
   function onPieceKeyDown(event) {
     const index = Number(event.currentTarget.dataset.piece);
     setSelected(index, false);
+    if (Room.active && Room.paused) {
+      if (event.key.startsWith('Arrow')) event.preventDefault();
+      showToast('A partida está pausada pelo anfitrião.');
+      return;
+    }
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       showToast('Use as setas para mover este veículo.');
@@ -376,7 +385,7 @@
   }
 
   function onPointerDown(event) {
-    if (state.won || state.busy || state.drag) return;
+    if (state.won || state.busy || state.drag || (Room.active && Room.paused)) return;
     if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
     const index = Number(event.currentTarget.dataset.piece);
     const piece = state.pieces[index];
@@ -952,6 +961,10 @@
     saveRoomCheckpoint();
   }
   function advanceRace() {
+    if (Room.active && Room.paused) {
+      showToast('A partida está pausada pelo anfitrião. Aguarde a retomada.');
+      return;
+    }
     closeModal(dom.winModal);
     if (race.status === 'between') { race.stage++; startRaceStage(); }
     else if (race.status === 'finished' && !Room.active) { enterRace(race.date); startRace(); }
@@ -997,6 +1010,11 @@
     scheduleWin();
   }
   function updateRaceUI() {
+    const roomPaused = Room.active && Room.paused;
+    document.body.classList.toggle('room-paused', roomPaused);
+    dom.board.classList.toggle('is-paused', roomPaused);
+    dom.board.setAttribute('aria-disabled', String(roomPaused));
+    $('racePauseLabel').hidden = !roomPaused;
     $('campaignMode').setAttribute('aria-pressed', String(!race.active));
     $('dailyMode').setAttribute('aria-pressed', String(race.active));
     $('racePanel').hidden = !race.active;
@@ -1010,6 +1028,7 @@
     $('raceLobby').hidden = inRound || Room.active;
     $('raceLive').hidden = !inRound;
     $('continueRaceButton').hidden = race.status !== 'between';
+    $('continueRaceButton').disabled = roomPaused;
     $('raceDate').textContent = race.date.split('-').reverse().join('/');
     $('raceLabel').textContent = race.date === Competition.today() ? 'RACHA DO DIA' : 'RACHA POR CONVITE';
     $('raceClock').textContent = Competition.formatTime(Room.active ? Room.elapsed() : race.elapsed + (race.status === 'playing' ? performance.now() - race.started : 0));
@@ -1027,7 +1046,7 @@
       dom.progressBar.style.width = `${(race.stage + (state.won ? 1 : 0)) / 3 * 100}%`;
       dom.progressCaption.textContent = '3 etapas · menos movimentos vence · tempo desempata';
       dom.bestCount.textContent = '—';
-      setTip('Vale cada movimento', Room.active ? 'Sem dicas, desfazer ou reiniciar. O tempo corre até terminar as três etapas.' : 'Sem dicas e sem desfazer. Reiniciar começa outra tentativa inteira.');
+      setTip('Vale cada movimento', Room.active ? (roomPaused ? 'A partida está pausada pelo anfitrião. Nenhum movimento ou segundo é contado até retomar.' : 'Sem dicas, desfazer ou reiniciar. O tempo corre até terminar as três etapas.') : 'Sem dicas e sem desfazer. Reiniciar começa outra tentativa inteira.');
     }
     renderComparison();
   }
@@ -1149,7 +1168,7 @@
       loadLevel(indices[cp.stage]);
       state.pieces=current.pieces;state.history=current.history;state.moves=current.history.length;state.won=current.solved;
       renderPieces(false);updateHud();
-      showToast('Você voltou à partida. O relógio continuou correndo.');
+      showToast(Room.paused ? 'Você voltou à partida pausada. Aguarde a retomada.' : 'Você voltou à partida. O relógio continuou correndo.');
     } catch (_) {
       race.stage=0;race.totalMoves=0;race.traces=[];startRaceStage();
       showToast('Não foi possível recuperar as jogadas. A tentativa voltou ao início com o tempo original.');
@@ -1167,6 +1186,7 @@
     Room.attach({ start: startRoomRace, stage: () => race.stage, change: () => {
       if (Room.active && !race.active) enterRace(Room.state?.room.day || Competition.today());
       if (Room.state) race.date = Room.state.room.day;
+      if (Room.paused && state.drag) { state.drag = null; renderPieces(false); }
       updateRaceUI();
     }, leave: () => { race.active = false; enterRace(Competition.today()); } });
   }

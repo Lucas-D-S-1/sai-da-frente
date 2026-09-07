@@ -57,7 +57,7 @@
           <p id="roomHelp"></p>
           <ul id="roomPlayers" aria-label="Jogadores na sala"></ul>
           <p id="roomCountdown" class="room-countdown" aria-live="polite" hidden></p>
-          <div class="room-actions"><button id="roomCopyButton" class="secondary-button">Copiar convite ↗</button><button id="roomReadyButton" class="secondary-button" aria-pressed="false">Estou pronto</button><button id="roomStartButton" class="primary-button" hidden>Dar a largada →</button><button id="roomExitButton" class="secondary-button">Sair da sala</button></div>
+          <div class="room-actions"><button id="roomCopyButton" class="secondary-button">Copiar convite ↗</button><button id="roomReadyButton" class="secondary-button" aria-pressed="false">Estou pronto</button><button id="roomStartButton" class="primary-button" hidden>Dar a largada →</button><button id="roomPauseButton" class="secondary-button" hidden aria-pressed="false">Pausar partida ⏸</button><button id="roomExitButton" class="secondary-button">Sair da sala</button></div>
           <p id="roomMessage" role="status" aria-live="polite"></p>
           <div id="roomLinkBox" hidden><label for="roomInviteLink">Convite da sala</label><input id="roomInviteLink" readonly /></div>
         </section>
@@ -71,7 +71,7 @@
           </div>
           <aside class="challenge-card"><span class="modal-kicker">A DISPUTA</span><h2>Reúna seus amigos</h2><div id="comparison"></div><div class="room-join"><label for="roomCodeInput">Tem um código de sala?</label><input id="roomCodeInput" maxlength="8" placeholder="Ex.: ABCD2345" autocapitalize="characters" autocomplete="off" /><button id="joinRoomButton" class="secondary-button">Entrar na sala</button><p id="roomJoinError" role="status"></p></div><div class="challenge-actions"><button id="inviteButton" class="secondary-button">Criar sala com amigos ↗</button><button id="shareBestButton" class="primary-button" hidden>Compartilhar minha marca ↗</button></div><p class="race-fineprint">Na sala, vocês aparecem juntos, confirmam presença e largam ao mesmo tempo. O placar atualiza ao concluir. Para jogar em outro horário, compartilhe sua marca pelo link.</p></aside>
         </div>
-        <div id="raceLive" class="race-live" hidden><strong id="raceStep">Etapa 1 de 3</strong><span id="raceTotal">0 mov.</span><span id="raceClock" aria-label="Tempo total">0:00</span><button id="continueRaceButton" class="primary-button" hidden>Próxima etapa →</button></div>
+        <div id="raceLive" class="race-live" hidden><strong id="raceStep">Etapa 1 de 3</strong><span id="raceTotal">0 mov.</span><span id="racePauseLabel" class="race-pause-label" hidden>⏸ pausado pelo anfitrião</span><span id="raceClock" aria-label="Tempo total">0:00</span><button id="continueRaceButton" class="primary-button" hidden>Próxima etapa →</button></div>
         <div id="shareBox" class="share-box" hidden><label for="shareLink" id="shareStatus">Copie este link e mande para seus amigos.</label><div><input id="shareLink" readonly aria-label="Link do desafio"/><button id="copyShareButton" class="secondary-button">Copiar link</button></div></div>
       </section>
       <main class="game-layout" id="gameMain">

@@ -1566,6 +1566,7 @@ input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .score-row strong { color:var(--accent-light); font-variant-numeric:tabular-nums; }
 .challenge-actions { display:grid; gap:10px; margin:24px 0 16px; }
 .race-live { display:flex; align-items:center; gap:24px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 22px; margin-top:18px; font-variant-numeric:tabular-nums; }
+.race-pause-label { color:var(--accent-light); font-size:.82rem; font-weight:750; }
 #raceClock { color:var(--accent-light); font-size:1.35rem; margin-left:auto; }
 .share-box { padding:18px; border:1px solid var(--accent); border-radius:14px; margin:12px 0 24px; }
 .share-box label { display:block; margin-bottom:10px; color:var(--ink-soft); font-size:.85rem; }
@@ -1603,6 +1604,8 @@ input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .room-remove { border:0; background:transparent; color:var(--ink-soft); text-decoration:underline; cursor:pointer; font-size:.85rem; padding:8px; }
 .room-actions { display:flex; flex-wrap:wrap; gap:10px; }
 .room-countdown { font-size:clamp(1.3rem,3vw,2.2rem); color:var(--accent-light); font-weight:750; }
+.room-paused .board { opacity:.68; cursor:wait; }
+.room-paused .board-viewport::after { content:'⏸  PARTIDA PAUSADA'; position:absolute; inset:0 32px 0 0; z-index:4; display:grid; place-items:center; border-radius:26px 8px 8px 26px; background:rgba(7,13,22,.48); color:var(--accent-light); font-size:clamp(.9rem,2vw,1.25rem); font-weight:850; letter-spacing:.08em; pointer-events:none; }
 #roomMessage { color:var(--accent-light); min-height:1em; font-size:.9rem; line-height:1.4; }
 #roomLinkBox input { display:block; width:100%; margin-top:8px; }
 .room-join { margin:24px 0; display:grid; gap:10px; }

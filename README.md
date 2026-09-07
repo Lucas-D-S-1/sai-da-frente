@@ -6,12 +6,12 @@ Quebra-cabeça de trânsito em português: mova os veículos no próprio eixo e 
 
 - **Campanha:** 72 fases únicas, de 2 a 40 movimentos mínimos, com estrelas e títulos por progresso. Dicas limitam a medalha da tentativa a duas estrelas. Desfazer é livre na campanha.
 - **Racha do dia:** três fases iguais para todos, em dificuldade crescente. Menos movimentos vence; tempo em segundos desempata. Sem dicas e sem desfazer. Repetições são permitidas, guardando o melhor resultado.
-- **Sala com amigos:** crie uma sala e compartilhe o código ou link. A lista mostra quem entrou, quem está online e quem marcou “Pronto”. O anfitrião dá a largada quando houver pelo menos duas pessoas prontas; todos recebem a mesma contagem regressiva de seis segundos.
+- **Sala com amigos:** crie uma sala e compartilhe o código ou link. A lista mostra quem entrou, quem está online e quem marcou “Pronto”. O anfitrião dá a largada quando houver pelo menos duas pessoas prontas; todos recebem a mesma contagem regressiva de seis segundos. Durante o racha, o anfitrião pode pausar e retomar a partida para todos; o relógio para junto.
 - **Medalhas:** ouro no mínimo possível, prata até 25% acima do mínimo, bronze por concluir. A sequência conta dias consecutivos de rachadas concluídas, sem crédito extra por repetições.
 
 O desafio muda às 00h UTC (21h de Brasília). Convites de dias anteriores continuam funcionando. Em uma sala, o relógio do servidor começa na largada e continua até as três etapas terminarem. A partida e as jogadas em andamento podem ser recuperadas ao recarregar a página; o relógio original é preservado. Salas expiram seis horas depois de criadas.
 
-Durante a sala, não há dicas, desfazer ou reinício. Cada jogador aparece no placar assim que envia o resultado. O serviço guarda apenas o código da sala, apelido, presença, etapa e resultado; não há cadastro. A conferência no servidor valida as jogadas e impede pontuações inventadas, mas não comprova autoria, ausência de ajuda externa ou que o tempo exibido não foi manipulado localmente.
+Durante a sala, não há dicas, desfazer ou reinício. Cada jogador aparece no placar assim que envia o resultado. O serviço guarda apenas o código da sala, apelido, presença, etapa, pausas e resultado; não há cadastro. A conferência no servidor valida as jogadas, desconta o tempo pausado e impede pontuações inventadas, mas não comprova autoria, ausência de ajuda externa ou que o tempo exibido não foi manipulado localmente.
 
 No teclado, use Tab para escolher um veículo, setas para mover uma casa e Shift + seta para deslizar até o limite. Mouse e toque permitem arrastar várias casas em um único movimento.
 

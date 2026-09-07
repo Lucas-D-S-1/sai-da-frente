@@ -84,17 +84,24 @@
     session=null;snapshot=null;launched=null;terminal=false;persist();render();hooks.leave?.();
   }
   function checkStart() {
-    if (!session || terminal || !snapshot || snapshot.room.status!=='started') return;
+    if (!session || terminal || !snapshot || !['started','paused'].includes(snapshot.room.status)) return;
     const self=snapshot.players.find(p=>p.id===snapshot.selfId);
     if (!self || self.left || self.score || session.result) return;
     const key=session.room+':'+snapshot.room.startsAt;
-    if (launched===key) return;
+    if (launched===key) {
+      if (snapshot.room.status==='started') $('roomCountdown').hidden=true;
+      return;
+    }
     const remaining=snapshot.room.startsAt-now();
     if (remaining>0) {
       $('roomCountdown').hidden=false;
       $('roomCountdown').textContent=`Largada em ${Math.ceil(remaining/1000)}…`;
     } else if (performance.now()-lastResponse<6000) {
-      launched=key;$('roomCountdown').hidden=true;
+      launched=key;
+      if (snapshot.room.status==='paused') {
+        $('roomCountdown').hidden=false;
+        $('roomCountdown').textContent='⏸ Partida pausada pelo anfitrião. Aguarde a retomada.';
+      } else $('roomCountdown').hidden=true;
       hooks.start?.(snapshot, session.checkpoint || null);
     } else {
       $('roomCountdown').hidden=false;$('roomCountdown').textContent='Reconectando para confirmar a largada…';
@@ -105,17 +112,26 @@
     if (!session) return;
     $('roomCode').textContent=session.room || '…';
     $('roomCopyButton').disabled=!session.room;
-    const waiting=snapshot?.room.status==='waiting';
+    const room=snapshot?.room;
+    const status=room?.status;
+    const waiting=status==='waiting';
+    const paused=status==='paused';
+    const started=['started','paused'].includes(status);
     const self=snapshot?.players.find(p=>p.id===snapshot.selfId);
     const host=self && snapshot.room.hostId===self.id;
     const fresh=performance.now()-lastResponse<20000 && !terminal;
-    $('roomStatus').textContent=!snapshot?'Conectando…':terminal?'Sala indisponível':!fresh?'Reconectando…':waiting?'Esperando a turma':now()<snapshot.room.startsAt?'Prepare-se para a largada':'Racha em andamento';
+    const raceHasBegun=started && Number.isFinite(room.startsAt) && now()>=room.startsAt;
+    $('roomStatus').textContent=!snapshot?'Conectando…':terminal?'Sala indisponível':!fresh?'Reconectando…':waiting?'Esperando a turma':paused?'Partida pausada':now()<room.startsAt?'Prepare-se para a largada':'Racha em andamento';
     $('roomReadyButton').hidden=!waiting || terminal;
     $('roomReadyButton').textContent=self?.ready?'Pronto ✓ (desmarcar)':'Estou pronto';
     $('roomReadyButton').setAttribute('aria-pressed',String(!!self?.ready));
     $('roomStartButton').hidden=!host || !waiting || terminal;
     $('roomStartButton').disabled=!fresh || !snapshot || snapshot.players.length<2 || !snapshot.players.every(p=>p.ready&&p.online&&!p.left);
-    $('roomHelp').textContent=waiting ? (host ? 'Dê a largada quando todos estiverem online e prontos. De 2 a 8 jogadores.' : 'Marque Pronto. O anfitrião dará a largada para todos.') : 'Menos movimentos vence. O tempo é contínuo desde a largada, inclusive entre etapas.';
+    $('roomPauseButton').hidden=!host || !raceHasBegun || terminal;
+    $('roomPauseButton').disabled=!fresh || !snapshot;
+    $('roomPauseButton').textContent=paused?'Retomar partida ▶':'Pausar partida ⏸';
+    $('roomPauseButton').setAttribute('aria-pressed',String(paused));
+    $('roomHelp').textContent=waiting ? (host ? 'Dê a largada quando todos estiverem online e prontos. De 2 a 8 jogadores.' : 'Marque Pronto. O anfitrião dará a largada para todos.') : paused ? (host ? 'A partida está pausada. Retome quando todos estiverem prontos.' : 'A partida está pausada pelo anfitrião. Aguarde a retomada.') : 'Menos movimentos vence. O relógio para durante uma pausa, inclusive entre etapas.';
     const people=$('roomPlayers');people.replaceChildren();
     const players=snapshot ? [...snapshot.players].sort((a,b)=>a.score&&b.score?window.RushCompetition.compare(a.score,b.score):a.score?-1:b.score?1:0) : [];
     for(const player of players) {
@@ -124,7 +140,7 @@
       const status=document.createElement('strong');
       status.className=player.online&&fresh?'online':'offline';
       status.textContent=player.score?`${player.score.m} mov. · ${window.RushCompetition.formatTime(player.score.t)}`:
-        player.left?'Saiu':!fresh?'Conexão incerta':!player.online?'Desconectado':waiting?(player.ready?'Pronto ✓':'Entrou · preparando'):now()<snapshot.room.startsAt?'Na largada':`Jogando · etapa ${Math.min(3,player.stage+1)}`;
+        player.left?'Saiu':!fresh?'Conexão incerta':!player.online?'Desconectado':waiting?(player.ready?'Pronto ✓':'Entrou · preparando'):paused?'Pausado':now()<snapshot.room.startsAt?'Na largada':`Jogando · etapa ${Math.min(3,player.stage+1)}`;
       row.append(label,status);
       if(host&&waiting&&player.id!==self.id) {
         const remove=document.createElement('button');remove.className='room-remove';remove.textContent='Remover';remove.setAttribute('aria-label',`Remover ${player.name}`);
@@ -133,6 +149,7 @@
       people.append(row);
     }
     if (self?.score) { $('roomCountdown').hidden=false; $('roomCountdown').textContent='Sua marca está no placar. Aguarde os amigos terminarem!'; }
+    else if (paused) { $('roomCountdown').hidden=false; $('roomCountdown').textContent='⏸ Partida pausada pelo anfitrião. Aguarde a retomada.'; }
     else if (!snapshot || waiting || terminal) $('roomCountdown').hidden=true;
   }
   async function copy() {
@@ -148,8 +165,13 @@
     try { await request('finish',{result}); } catch (_) {} finally { submitting=false; }
   }
   window.RushRoom={
-    get active(){return !!session;}, get state(){return snapshot;}, get unavailable(){return terminal;},
-    elapsed(){return snapshot?.room.startsAt?Math.max(0,now()-snapshot.room.startsAt):0;},
+    get active(){return !!session;}, get state(){return snapshot;}, get unavailable(){return terminal;}, get paused(){return snapshot?.room.status==='paused';},
+    elapsed(){
+      const room=snapshot?.room;
+      if (!room?.startsAt || now()<room.startsAt) return 0;
+      const base=Number(room.elapsed)||0;
+      return room.status==='started' ? Math.max(0,base+Math.max(0,now()-(snapshot.now||now()))) : base;
+    },
     save(checkpoint){if(session){session.checkpoint=checkpoint;persist();}}, finish:submit,
     attach(callbacks){
       hooks=callbacks;
@@ -157,6 +179,7 @@
       $('joinRoomButton').addEventListener('click',()=>join($('roomCodeInput').value));
       $('roomReadyButton').addEventListener('click',()=>request('ready',{ready:!snapshot?.players.find(p=>p.id===snapshot.selfId)?.ready}).catch(()=>{}));
       $('roomStartButton').addEventListener('click',()=>request('start').catch(()=>{}));
+      $('roomPauseButton').addEventListener('click',()=>request('pause').catch(()=>{}));
       $('roomExitButton').addEventListener('click',leave);
       $('roomCopyButton').addEventListener('click',copy);
       const invite=new URLSearchParams(location.hash.slice(1)).get('sala');
